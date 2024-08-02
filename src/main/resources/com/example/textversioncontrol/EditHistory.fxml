@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.AnchorPane?>
+
+<AnchorPane prefHeight="806.0" prefWidth="926.0" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.textversioncontrol.controllers.EditHistoryController">
+   <children>
+      <Label layoutX="344.0" layoutY="64.0" prefHeight="58.0" prefWidth="238.0" style="-fx-font-size: 40px; -fx-font-weight: 700;" text="File History" />
+      <TableView fx:id="historyTable" layoutX="82.0" layoutY="248.0" prefHeight="404.0" prefWidth="761.0" />
+      <Label layoutX="82.0" layoutY="202.0" prefHeight="45.0" prefWidth="761.0" style="-fx-font-size: 30px; -fx-font-weight: 700; -fx-text-fill: white; -fx-background-color: #4da3ff;" text="Version History">
+         <padding>
+            <Insets left="10.0" />
+         </padding>
+      </Label>
+      <Button layoutX="82.0" layoutY="67.0" mnemonicParsing="false" onAction="#backToMain" prefHeight="52.0" prefWidth="117.0" style="-fx-background-color: #4da3ff; -fx-font-size: 25px; -fx-font-weight: 700; -fx-text-fill: white; -fx-border-radius: 35px;" text="Back" />
+      <TextField layoutX="82.0" layoutY="728.0" prefHeight="45.0" prefWidth="570.0" style="-fx-font-size: 15px;" text="C:" />
+      <Button layoutX="668.0" layoutY="728.0" mnemonicParsing="false" onAction="#backToMain" prefHeight="39.0" prefWidth="117.0" style="-fx-background-color: #4da3ff; -fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: white; -fx-border-radius: 35px;" text="Change" />
+      <Label layoutX="82.0" layoutY="158.0" prefHeight="36.0" prefWidth="821.0" style="-fx-font-size: 25px; -fx-font-weight: 700;" text="File Name: discord_codes.txt" />
+      <Label layoutX="82.0" layoutY="679.0" prefHeight="17.0" prefWidth="329.0" style="-fx-font-size: 25px; -fx-font-weight: 700;" text="Current Pathway" />
+   </children>
+</AnchorPane>
