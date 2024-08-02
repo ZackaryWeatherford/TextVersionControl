@@ -1,4 +1,4 @@
-package com.example.textversioncontrol;
+package com.example.textversioncontrol.managers;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
@@ -23,7 +23,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 public abstract class VersionManager {
 
     /**
-     * The <code>startTracking</code> method 
+     * The <code>startTracking</code> method
      */
     public static void startTracking(String pathway) throws IOException {
 

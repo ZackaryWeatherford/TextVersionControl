@@ -1,7 +1,7 @@
 package com.example.textversioncontrol.controllers;
 
 import com.example.textversioncontrol.models.FileData;
-import com.example.textversioncontrol.VersionManager;
+import com.example.textversioncontrol.managers.VersionManager;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.scene.control.*;
