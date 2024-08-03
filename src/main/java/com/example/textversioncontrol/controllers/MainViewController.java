@@ -63,8 +63,8 @@ public class MainViewController     {
         // Add columns to table
         trackedFilesTable.getColumns().addAll(nameColumn, lastEditColumn, pathwayColumn, openColumn, closeColumn);
 
-        // Populate table with data in textfile_repos
-        populateTable();
+        // Populate table with data in TrackedFiles
+        //populateTable();
 
         try {
             VersionManager.updateTextFiles();
@@ -74,13 +74,7 @@ public class MainViewController     {
         }
 
 
-        try {
-            VersionManager.getCommitDates("discord_backup_codes");
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (GitAPIException e) {
-            throw new RuntimeException(e);
-        }
+
     }
 
     /** */

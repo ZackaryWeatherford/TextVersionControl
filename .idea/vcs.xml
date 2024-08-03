@@ -2,10 +2,11 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/textfile_repos/Epic Games Account Two-Factor backup codes" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/textfile_repos/discord_backup_codes" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/textfile_repos/eragon" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/textfile_repos/harrypotter" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/textfile_repos/test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (0)" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (1)" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (2)" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (3)" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (4)" vcs="Git" />
   </component>
 </project>
