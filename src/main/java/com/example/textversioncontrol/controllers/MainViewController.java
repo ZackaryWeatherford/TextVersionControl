@@ -1,5 +1,6 @@
 package com.example.textversioncontrol.controllers;
 
+import com.example.textversioncontrol.managers.DatabaseManager;
 import com.example.textversioncontrol.models.FileData;
 import com.example.textversioncontrol.managers.VersionManager;
 import javafx.event.ActionEvent;
@@ -7,13 +8,18 @@ import javafx.fxml.FXML;
 import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Callback;
-import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
+/**
+ * The <code>MainViewController</code> class handles the MainView events and loading data to the screen.
+ *
+ */
 public class MainViewController     {
 
+    /** Used to control what screens are currently loaded to stage */
     public static SceneController sceneController = new SceneController();
 
     /** */
@@ -28,19 +34,9 @@ public class MainViewController     {
     @FXML
     TextField pathwayLineEdit;
 
-    /** */
-    public void trackFile(ActionEvent e){
-        try {
-            VersionManager.startTracking(pathwayLineEdit.getText());
-        }
-        catch(Exception ex){
-            ex.printStackTrace();
-        }
-
-        populateTable();
-    }
-
-    /** */
+    /**
+     * Set table columns and populate the table.
+     */
     @FXML
     public void initialize() {
 
@@ -52,57 +48,58 @@ public class MainViewController     {
         lastEditColumn.setCellValueFactory(new PropertyValueFactory<>("lastEdit"));
 
         TableColumn<FileData, String> pathwayColumn = new TableColumn<>("Pathway");
-        pathwayColumn.setCellValueFactory(new PropertyValueFactory<>("pathway"));
+        pathwayColumn.setCellValueFactory(new PropertyValueFactory<>("trackedPathway"));
 
         TableColumn<FileData, Void> openColumn = new TableColumn<>("Open");
         openColumn.setCellFactory(createButtonCellFactory());
 
-        TableColumn<FileData, Void> closeColumn = new TableColumn<>("Close");
-        closeColumn.setCellFactory(createCloseButtonCellFactory());
+        TableColumn<FileData, Void> closeColumn = new TableColumn<>("Delete");
+        closeColumn.setCellFactory(createDeleteButtonCellFactory());
 
         // Add columns to table
         trackedFilesTable.getColumns().addAll(nameColumn, lastEditColumn, pathwayColumn, openColumn, closeColumn);
 
-        // Populate table with data in TrackedFiles
-        //populateTable();
-
+        // Update files being currently tracked and populate the table
         try {
-            VersionManager.updateTextFiles();
+            //VersionManager.updateTextFiles();
+            //DatabaseManager.clean();
+            //DatabaseManager.updateEntry("test", DatabaseManager.Columns.DIRECTORY_PATHWAY, "C:\\Users\\katie\\Code\\Java Projects\\TextVersionControl\\src\\main\\resources\\TrackedFiles\\test");
+            //DatabaseManager.resolvePathways();
+            //VersionManager.stopTracking("test");
+
+            populateTable();
         }
         catch(Exception e){
             e.printStackTrace();
         }
-
-
-
     }
 
     /** */
-    public void populateTable() {
+    public void populateTable() throws SQLException, IOException {
 
         // Clear tables items
         trackedFilesTable.getItems().clear();
 
-        // Get file names
-        ArrayList<String> fileNames = VersionManager.getTextFileNames();
-        ArrayList<String> filePathways = null;
-        ArrayList<String> lastEdits = null;
-
-        // Get file pathways
-        try {
-            filePathways = VersionManager.getPathways();
-            lastEdits = VersionManager.getLastEditDates();
-        }
-        catch(Exception e){
-            e.printStackTrace();
-            System.exit(1);
-        }
+        // Lists of file data to be displayed on table
+        ArrayList<String> fileNames = DatabaseManager.getEntries(DatabaseManager.Columns.FILE_NAME);
+        ArrayList<String> trackedPathways = DatabaseManager.getEntries(DatabaseManager.Columns.TRACKING_PATHWAY);
+        ArrayList<String> lastEdits = VersionManager.getLastEditDates();
 
         // Populate Rows
-        for(int i = 0; i < fileNames.size(); i++){
-            trackedFilesTable.getItems().add(new FileData(fileNames.get(i), lastEdits.get(i), filePathways.get(i)));
-        }
+        for(int i = 0; i < fileNames.size(); i++)
+            trackedFilesTable.getItems().add(new FileData(fileNames.get(i), lastEdits.get(i), trackedPathways.get(i)));
+    }
 
+    /** */
+    public void trackFile(ActionEvent e){
+        // Start tracking file and repopulate the table
+        try {
+            VersionManager.startTracking(pathwayLineEdit.getText());
+            populateTable();
+        }
+        catch(Exception ex){
+            ex.printStackTrace();
+        }
     }
 
     /** Create Open Button*/
@@ -140,16 +137,22 @@ public class MainViewController     {
     }
 
     /** Create Delete button*/
-    private Callback<TableColumn<FileData, Void>, TableCell<FileData, Void>> createCloseButtonCellFactory() {
+    private Callback<TableColumn<FileData, Void>, TableCell<FileData, Void>> createDeleteButtonCellFactory() {
         return new Callback<>() {
             @Override
             public TableCell<FileData, Void> call(TableColumn<FileData, Void> param) {
                 return new TableCell<>() {
-                    private final Button button = new Button("Close");
+                    private final Button button = new Button("Delete");
                     {
                         button.setOnAction(event -> {
                             FileData data = getTableView().getItems().get(getIndex());
                             System.out.println("Button clicked for file: " + data.getFileName());
+                            try {
+                                VersionManager.stopTracking(data.getFileName());
+                                populateTable();
+                            } catch (SQLException | IOException e) {
+                                throw new RuntimeException(e);
+                            }
                             // Implement your button action here
                         });
                     }

@@ -2,11 +2,7 @@
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="$PROJECT_DIR$" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (0)" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (1)" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/M08 Team Meeting" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (2)" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (3)" vcs="Git" />
-    <mapping directory="$PROJECT_DIR$/src/main/resources/TrackedFiles/test (4)" vcs="Git" />
   </component>
 </project>

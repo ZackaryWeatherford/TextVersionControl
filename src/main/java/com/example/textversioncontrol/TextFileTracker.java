@@ -5,12 +5,10 @@ import com.example.textversioncontrol.managers.VersionManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
-import javafx.scene.chart.PieChart;
 import javafx.stage.Stage;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.IOException;
-import java.nio.file.Paths;
 import java.sql.*;
 
 /**
@@ -20,19 +18,21 @@ public class TextFileTracker extends Application {
 
     /**
      * The <code>start</code> method is the main entry point of the JavaFX applicaiton.
-     * Loads the main view window from the MainView.fxml file and displays it to user.
+     * Loads the main view window from the MainView.fxml file and creates connection to database.
      *
      * @param stage the primary stage (top-level container)
      * @throws IOException if an I/O error occurs while loading fxml file
      * */
     @Override
-    public void start(Stage stage) throws IOException, SQLException, ClassNotFoundException {
+    public void start(Stage stage) throws IOException, SQLException, ClassNotFoundException, GitAPIException {
 
         DatabaseManager.createConnection();
+       // VersionManager.startTracking("C:\\Users\\zackd\\Downloads\\test.txt");
 
         try {
-            VersionManager.startTracking("C:\\Users\\zackd\\Downloads\\test.txt");
-        } catch (GitAPIException e) {
+            //VersionManager.startTracking("C:\\Users\\zackd\\Downloads\\test.txt");
+            //System.out.println(DatabaseManager.getEntry("test", DatabaseManager.Columns.FILE_NAME));
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
 

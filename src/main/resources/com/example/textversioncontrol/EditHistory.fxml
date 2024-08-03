@@ -17,9 +17,9 @@
          </padding>
       </Label>
       <Button layoutX="82.0" layoutY="67.0" mnemonicParsing="false" onAction="#backToMain" prefHeight="52.0" prefWidth="117.0" style="-fx-background-color: #4da3ff; -fx-font-size: 25px; -fx-font-weight: 700; -fx-text-fill: white; -fx-border-radius: 35px;" text="Back" />
-      <TextField layoutX="82.0" layoutY="728.0" prefHeight="45.0" prefWidth="570.0" style="-fx-font-size: 15px;" text="C:" />
+      <TextField fx:id="currentPathwayField" layoutX="82.0" layoutY="728.0" prefHeight="45.0" prefWidth="570.0" style="-fx-font-size: 15px;" text="C:" />
       <Button layoutX="668.0" layoutY="728.0" mnemonicParsing="false" onAction="#backToMain" prefHeight="39.0" prefWidth="117.0" style="-fx-background-color: #4da3ff; -fx-font-size: 20px; -fx-font-weight: 700; -fx-text-fill: white; -fx-border-radius: 35px;" text="Change" />
-      <Label layoutX="82.0" layoutY="158.0" prefHeight="36.0" prefWidth="821.0" style="-fx-font-size: 25px; -fx-font-weight: 700;" text="File Name: discord_codes.txt" />
+      <Label fx:id="fileNameLabel" layoutX="82.0" layoutY="157.0" prefHeight="36.0" prefWidth="821.0" style="-fx-font-size: 25px; -fx-font-weight: 700;" text="File Name: discord_codes.txt" />
       <Label layoutX="82.0" layoutY="679.0" prefHeight="17.0" prefWidth="329.0" style="-fx-font-size: 25px; -fx-font-weight: 700;" text="Current Pathway" />
    </children>
 </AnchorPane>

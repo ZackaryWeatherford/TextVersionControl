@@ -1,23 +1,31 @@
 package com.example.textversioncontrol.controllers;
 
+import com.example.textversioncontrol.managers.DatabaseManager;
 import com.example.textversioncontrol.managers.VersionManager;
 import com.example.textversioncontrol.models.EditData;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
-import javafx.scene.control.Button;
-import javafx.scene.control.TableCell;
-import javafx.scene.control.TableColumn;
-import javafx.scene.control.TableView;
+import javafx.scene.control.*;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.util.Callback;
 import org.eclipse.jgit.api.errors.GitAPIException;
+
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 
 public class EditHistoryController {
 
     @FXML
     TableView historyTable;
+
+    @FXML
+    Label fileNameLabel;
+
+    @FXML
+    TextField currentPathwayField;
+
     public static String fileName;
 
 
@@ -39,7 +47,7 @@ public class EditHistoryController {
 
     /** */
     @FXML
-    public void initialize(){
+    public void initialize() throws SQLException, IOException, GitAPIException {
 
         if(historyTable == null){
             System.out.println("table null");
@@ -64,16 +72,23 @@ public class EditHistoryController {
         // Add columns to table
         historyTable.getColumns().addAll(idColumn, datesColumn, revertColumn, openColumn);
 
+        //
+        populateTable();
+
+        //
+        fileNameLabel.setText("File Name: " + fileName);
+
+        //
+        currentPathwayField.setText(DatabaseManager.getEntry(fileName, DatabaseManager.Columns.TRACKING_PATHWAY));
+    }
+
+    /** */
+    public void populateTable() throws SQLException, IOException, GitAPIException {
+
         ArrayList<String> dates;
 
         // Get lists
-        try {
-            dates = VersionManager.getCommitDates(fileName);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        } catch (GitAPIException e) {
-            throw new RuntimeException(e);
-        }
+        dates = VersionManager.getCommitDates(DatabaseManager.getEntry(fileName, DatabaseManager.Columns.GIT_PATHWAY));
 
         // Populate Rows
         for(int i = 0; i < dates.size(); i++){
@@ -82,6 +97,12 @@ public class EditHistoryController {
 
     }
 
+    /** */
+    public void changeTrackedPathway(){
+
+
+
+    }
     /*
     Iterable<RevCommit> commits = git.log().call();
 
@@ -138,7 +159,7 @@ public class EditHistoryController {
             @Override
             public TableCell<EditData, Void> call(TableColumn<EditData, Void> param) {
                 return new TableCell<>() {
-                    private final Button button = new Button("Close");
+                    private final Button button = new Button("Revert");
 
                     {
                         button.setOnAction(event -> {

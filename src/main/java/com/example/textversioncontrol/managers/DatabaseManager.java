@@ -1,24 +1,26 @@
 package com.example.textversioncontrol.managers;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.sql.*;
 import java.util.ArrayList;
 
 /**
- * The <code>DatabaseManager</code> class manages connecting, editing, and reading the FilesPathways database.
+ * The <code>DatabaseManager</code> class manages connecting, editing, and reading of the FilesPathways database table.
+ * The database pathways table consists of five columns: file_name, directory_pathway, copy_pathway, tracking_pathway, git_pathway.
  */
 public class DatabaseManager {
 
     /** Commands for what pathway to extract from the database. */
-    public enum Pathways {DIRECTORY_PATHWAY, COPY_PATHWAY, TRACKING_PATHWAY, REPO_PATHWAY}
+    public enum Columns {FILE_NAME, DIRECTORY_PATHWAY, COPY_PATHWAY, TRACKING_PATHWAY, GIT_PATHWAY}
 
-    /** Connection to SQL dateabase */
+    /** Connection to the SQL database */
     public static Connection connection = null;
 
     /**
-     *  Connects the sql connection object to the database.
-     *  Must be called at least once for every other method in class to work.
+     *  Establishes a connection with the SQL database through the <code>connection</code> object.
+     *  Must be called before using any other method in class.
      *
      * @throws ClassNotFoundException if the name of the class can't be found
      * @throws SQLException if connection to the database couldn't be made
@@ -35,10 +37,11 @@ public class DatabaseManager {
 
     /**
      * Add table columns to the database pathways table for file information in case they are deleted.
+     * Five columns are added: file_name, directory_pathway, copy_pathway, tracking_pathway, repo_pathway.
      *
      * @throws SQLException if database access error occurs
      */
-    public static void setColumns() throws SQLException {
+    public static void createColumns() throws SQLException {
 
         // SQL query command to be executed
         String query = "CREATE TABLE IF NOT EXISTS pathways ("
@@ -50,11 +53,8 @@ public class DatabaseManager {
                 + ");";
 
         // Execute the query statement to add table columns
-        try {
-            Statement statement = connection.createStatement();
+        try(Statement statement = connection.createStatement();){
             statement.execute(query);
-        } catch (Exception e) {
-            throw new SQLException();
         }
     }
 
@@ -74,17 +74,18 @@ public class DatabaseManager {
         String query = "INSERT INTO pathways (file_name, directory_pathway, copy_pathway, tracking_pathway, repo_pathway) VALUES (?, ?, ?, ?, ?)";
 
         // Create the prepared statement
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query)) {
 
-        // Insert values into statement
-        preparedStatement.setString(1, fileName);
-        preparedStatement.setString(2, directoryPathway);
-        preparedStatement.setString(3, copyPathway);
-        preparedStatement.setString(4, trackingPathway);
-        preparedStatement.setString(5, repoPathway);
+            // Insert values into statement
+            preparedStatement.setString(1, fileName);
+            preparedStatement.setString(2, directoryPathway);
+            preparedStatement.setString(3, copyPathway);
+            preparedStatement.setString(4, trackingPathway);
+            preparedStatement.setString(5, repoPathway);
 
-        // Execute statement
-        preparedStatement.executeUpdate();
+            // Execute statement
+            preparedStatement.executeUpdate();
+        }
     }
 
     /**
@@ -93,19 +94,20 @@ public class DatabaseManager {
      * @param fileName the name of the file to be deleted from the table.
      * @throws SQLException if SQL database access error occurs during the creation or execution of the prepared statement.
      */
-    public static void deleteFile(String fileName) throws SQLException {
+    public static void deleteRecord(String fileName) throws SQLException {
 
         // Query statement
         String query = "DELETE FROM pathways WHERE file_name = ?";
 
-        // Create prepared statement
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
+        // Create the prepared statement
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query)) {
 
-        // Insert fileName into statement
-        preparedStatement.setString(1, fileName);
+            // Insert fileName into statement
+            preparedStatement.setString(1, fileName);
 
-        // Execute statement
-        preparedStatement.executeUpdate();
+            // Execute statement
+            preparedStatement.executeUpdate();
+        }
     }
 
     /**
@@ -119,58 +121,198 @@ public class DatabaseManager {
         String query = "DELETE FROM pathways";
 
         // Create Statement
-        Statement statement = connection.createStatement();
-
-        // Execute Query
-        statement.execute(query);
+        try(Statement statement = connection.createStatement()){
+            // Execute Query
+            statement.execute(query);
+        }
     }
 
+    /**
+     * Removes all empty records from the database pathways table.
+     *
+     * @throws SQLException if connection fails to create statement or executing query fails.
+     */
+    public static void clean() throws SQLException {
+
+        // Query statement
+        String query = "DELETE FROM pathways WHERE file_name IS NULL;";
+
+        // Execute statement
+        try(Statement statement = connection.createStatement()){
+            statement.executeUpdate(query);
+        }
+    }
 
     /**
      * Returns a pathway from the table based on the pathway argument passed.
      *
      * @param fileName the file to extract pathway from.
-     * @param pathway the pathway to be extracted from SQL table.
+     * @param column the pathway to be extracted from SQL table.
      * @throws SQLException if the prepared statement or result set have trouble accessing the database.
      * @throws FileNotFoundException if no entry with fileName was found.
      * @return the requested pathway in the form of a String.
      */
-    public static String getPathway(String fileName, Pathways pathway) throws SQLException, FileNotFoundException {
+    public static String getEntry(String fileName, Columns column) throws SQLException, FileNotFoundException {
 
-        // Pathway based on what was Pathways value was passed
-        String requestedPathway = switch (pathway) {
+        // Pathway based on what was Columns value was passed
+        String requestedColumn = switch (column) {
+            case FILE_NAME -> "file_name";
             case DIRECTORY_PATHWAY -> "directory_pathway";
             case COPY_PATHWAY -> "copy_pathway";
             case TRACKING_PATHWAY -> "tracking_pathway";
-            case REPO_PATHWAY -> "repo_pathway";
+            case GIT_PATHWAY -> "repo_pathway";
         };
 
         // Query statement
-        String query = "SELECT " + requestedPathway +  " from pathways WHERE file_name = ?";
+        String query = "SELECT " + requestedColumn +  " FROM pathways WHERE file_name = ?";
 
-        // Create the prepared statement and add fileName to it
-        PreparedStatement preparedStatement = connection.prepareStatement(query);
-        preparedStatement.setString(1, fileName);
+        // Initialize result set
+        ResultSet resultSet = null;
 
-        // Get the result set of the query
-        ResultSet resultSet = preparedStatement.executeQuery();
+        try(PreparedStatement preparedStatement = connection.prepareStatement(query)){
+            // Insert filename into statement
+            preparedStatement.setString(1, fileName);
 
-        // Get the directory_pathway from the first result
-        while(resultSet.next()) {
-            return resultSet.getString(requestedPathway);
+            // Get the result set of the query
+            resultSet = preparedStatement.executeQuery();
+
+            // Return the first result from the result set
+            return resultSet.getString(requestedColumn);
         }
-
-        // Throw exception if no entries were found
-        throw new FileNotFoundException("fileName was not found in SQL table");
+        finally{
+            if(resultSet != null)
+                resultSet.close();
+        }
     }
 
+    /**
+     * Returns all the entries from a column from the table based on the column argument passed.
+     *
+     * @param column the pathway to be extracted from SQL table.
+     * @throws SQLException if the prepared statement or result set have trouble accessing the database.
+     * @return the requested pathway in the form of a String.
+     */
+    public static ArrayList<String> getEntries(Columns column) throws SQLException {
+
+        // Store retrieved entries from database
+        ArrayList<String> entries = new ArrayList<>();
+
+        // Column based on what column value was given
+        String requestedPathway = switch (column) {
+            case FILE_NAME ->  "file_name";
+            case DIRECTORY_PATHWAY -> "directory_pathway";
+            case COPY_PATHWAY -> "copy_pathway";
+            case TRACKING_PATHWAY -> "tracking_pathway";
+            case GIT_PATHWAY -> "repo_pathway";
+        };
+
+        // Query statement
+        String query = "SELECT " + requestedPathway +  " FROM pathways";
+
+        // Create the statement and extract the result set from the execution
+        try (Statement statement = connection.createStatement(); ResultSet resultSet = statement.executeQuery(query)) {
+
+            // Extract entries from the result set
+            while (resultSet.next())
+                entries.add(resultSet.getString(requestedPathway));
+        }
+
+        return entries;
+    }
 
     /**
-     * Retrieves all entries in the file_name columns of the table.
+     * Updates a cell within a record.
      *
-     * @throws SQLException if SQL statement or result set have trouble accessing the database.
-     * @return a list of all file names in table.
+     * @param fileName the record to change the cell of
+     * @param column the column within the record to change
+     * @param value the value to put in the record's cell
+     * @throws SQLException if database access error occurs
      */
+    public static void updateEntry(String fileName, Columns column, String value) throws SQLException {
+
+        // Convert column to string
+        String requestedColumn = column.toString().toLowerCase();
+
+        // Create query statement
+        String query = "UPDATE pathways SET " + requestedColumn + " = ? " +  "WHERE file_name = ?";
+
+        // Loading and executing the prepared statement
+        try (PreparedStatement preparedStatement = connection.prepareStatement(query)) {
+            // Load values into statement
+            preparedStatement.setString(1, value);
+            preparedStatement.setString(2, fileName);
+
+            // Execute query
+            preparedStatement.executeUpdate();
+        }
+    }
+
+    /**
+     * Checks if directory, copy, and repository pathways lead to valid files and resolve any of the pathways that don't
+     *
+     * @throws SQLException if DatabaseManager encounters error attempting to get column data from the database
+     */
+    public static void resolvePathways() throws SQLException {
+
+        // List of database columns
+        ArrayList<String> fileNames = DatabaseManager.getEntries(DatabaseManager.Columns.FILE_NAME);
+        ArrayList<String> directoryPathways = DatabaseManager.getEntries(DatabaseManager.Columns.DIRECTORY_PATHWAY);
+        ArrayList<String> copyPathways = DatabaseManager.getEntries(DatabaseManager.Columns.COPY_PATHWAY);
+        ArrayList<String> repoPathways = DatabaseManager.getEntries(DatabaseManager.Columns.GIT_PATHWAY);
+
+        // Resolve invalid directory pathways
+        for(int i = 0; i < directoryPathways.size(); i++) {
+            String pathway = directoryPathways.get(i);
+            if (!new File(pathway).exists()) {
+                try {
+                    String resolvedPathway = Paths.get("").toAbsolutePath().resolve("src/main/resources/TrackedFiles/" + Paths.get(pathway).getFileName()).toString();
+                    DatabaseManager.updateEntry(fileNames.get(i), DatabaseManager.Columns.DIRECTORY_PATHWAY, resolvedPathway);
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+        // Resolve invalid copy pathways
+        for(int i = 0; i < copyPathways.size(); i++) {
+            String pathway = copyPathways.get(i);
+            if (!new File(pathway).exists()) {
+                try{
+                    String resolvedPathway = Paths.get("").toAbsolutePath().resolve("src/main/resources/TrackedFiles/" + Paths.get(pathway).getFileName()).toString();
+                    DatabaseManager.updateEntry(fileNames.get(i), DatabaseManager.Columns.COPY_PATHWAY, resolvedPathway);
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+        // Resolve invalid repo pathways
+        for(int i = 0; i < repoPathways.size(); i++) {
+            String pathway = repoPathways.get(i);
+            if (!new File(pathway).exists()) {
+                try{
+                    String resolvedPathway = Paths.get("").toAbsolutePath().resolve("src/main/resources/TrackedFiles/" + Paths.get(pathway).getFileName()).toString();
+                    DatabaseManager.updateEntry(fileNames.get(i), DatabaseManager.Columns.COPY_PATHWAY, resolvedPathway);
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
+            }
+        }
+
+    }
+}
+
+
+
+/**
+ * Retrieves all entries in the file_name columns of the table.
+ *
+ * @throws SQLException if SQL statement or result set have trouble accessing the database.
+ * @return a list of all file names in table.
+ */
+    /*
     public static ArrayList<String> getFileNames() throws SQLException {
 
         // List of file names
@@ -190,7 +332,7 @@ public class DatabaseManager {
         return fileNames;
     }
 
-    /** */
-    public static ArrayList<String> get
+     */
 
-}
+
+
