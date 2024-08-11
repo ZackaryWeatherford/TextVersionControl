@@ -7,28 +7,46 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.nio.file.*;
 import java.io.*;
+import java.util.Iterator;
+import java.util.List;
 import java.util.TimeZone;
 import java.io.File;
-import org.eclipse.jgit.api.AddCommand;
-import org.eclipse.jgit.api.CommitCommand;
-import org.eclipse.jgit.api.Git;
+
+import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.NoHeadException;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
+import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.ObjectReader;
+import org.eclipse.jgit.lib.Ref;
+import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
+import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
+import org.eclipse.jgit.treewalk.TreeWalk;
+import org.eclipse.jgit.treewalk.filter.PathFilter;
 
 /**
- *  The <code>VersionManager</code> class is a utility class that
- *
+ * The <code>VersionManager</code> class is a utility class that manages files.
  */
 public abstract class VersionManager {
 
     /**
+     * Starts tracking the text file. Creates a new directory and database record to save the file's information.
      *
+     * @param trackingPathway the pathway of the file to be tracked.
+     * @throws IOException if the <code>trackingPathway</code> is not a valid pathway or isn't a text file
+     * @throws GitAPIException if the git repository couldn't be created
+     * @throws SQLException if the file's information couldn't be inserted into the database
      */
     public static void startTracking(String trackingPathway) throws IOException, GitAPIException, SQLException {
 
         // Columns to be stored in the database
-        String fileName = extractFileName(trackingPathway);
+        String fileName = parseFileName(trackingPathway);
         String directoryPathway;
         String copyPathway;
         String repoPathway = null;
@@ -38,16 +56,13 @@ public abstract class VersionManager {
         File trackingFile = new File(trackingPathway);
 
 
-        // Check if the trackingPathway is valid
-        try {
-            Paths.get(trackingPathway);
-        } catch (InvalidPathException | NullPointerException ex) {
-            throw new IOException("Invalid tracking pathway for tracking file");
-        }
+        // Check if the trackingFile exists
+        if(!trackingFile.exists())
+            throw new FileNotFoundException("The following file does not exist: " + trackingPathway);
 
         // Checks if file is a text file
         if(!trackingFile.getName().contains(".txt"))
-            throw new IOException("The file trying to be tracked isn't a text file");
+            throw new IOException("Attempting to track a non-text file at " + trackingPathway);
 
 
         // Set directory pathway
@@ -58,7 +73,7 @@ public abstract class VersionManager {
 
         String temp = fileName;
 
-        // Loop through directory names until a available one is found.
+        // Loop through directory names until an available name is found.
         for(int i = 0; directory.exists() && i < 30; i++){
             directoryPathway = getTrackedFilesPathway() + "\\" + trackingFile.getName().replace(".txt","") + " (" + i + ")";
             directory = new File(directoryPathway);
@@ -86,15 +101,26 @@ public abstract class VersionManager {
             throw e;
         }
 
-        //Create Git init and save changes to git
+        Git git = null;
+
         try {
-            Git git = Git.init().setDirectory(directory).call();
+            // Initialize repository
+            git = Git.init().setDirectory(directory).call();
+
+            // Add the text file to the staging area
             AddCommand add = git.add();
-            add.addFilepattern(copyPathway).call();
+            add.addFilepattern(fileName+".txt").call();
+
+            // Commit changes
             CommitCommand commit = git.commit();
             commit.setMessage("initial commit").call();
+
+            git.close();
         }
         catch(Exception e){
+            // Delete resources if fail
+            if(git != null)
+                git.close();
             directory.delete();
             copiedFile.delete();
             DatabaseManager.deleteRecord(fileName);
@@ -103,9 +129,12 @@ public abstract class VersionManager {
     }
 
     /**
+     * Parse the file name without a file name extension
      *
+     * @param pathway the file pathway to extract the file name from
+     * @return string value containing the file name
      */
-    public static String extractFileName(String pathway){
+    public static String parseFileName(String pathway){
         return pathway.substring(pathway.lastIndexOf('\\')+1, pathway.lastIndexOf('.'));
     }
 
@@ -121,51 +150,50 @@ public abstract class VersionManager {
         // Pathways to currently tracked files
         ArrayList<String> copyPathways = DatabaseManager.getEntries(DatabaseManager.Columns.COPY_PATHWAY);
         ArrayList<String> trackingPathways = DatabaseManager.getEntries(DatabaseManager.Columns.TRACKING_PATHWAY);
-        ArrayList<String> gitPathways = DatabaseManager.getEntries(DatabaseManager.Columns.GIT_PATHWAY);
+        ArrayList<String> gitPathways = DatabaseManager.getEntries(DatabaseManager.Columns.REPO_PATHWAY);
 
         // Loop through entries in database
-        for(int i = 0; i < copyPathways.size() && i < trackingPathways.size(); i++){
+        for (int i = 0; i < copyPathways.size() && i < trackingPathways.size(); i++) {
+            Path copyPath = Paths.get(copyPathways.get(i));
+            Path trackingPath = Paths.get(trackingPathways.get(i));
 
             // Check if there are changes between the two text files
-            long mismatch = Files.mismatch(Paths.get(copyPathways.get(i)), Paths.get(trackingPathways.get(i)));
+            long mismatch = Files.mismatch(copyPath, trackingPath);
 
             // If there are no changes, then skip to next
-            if(mismatch == -1)
+            if (mismatch == -1) {
                 continue;
+            }
 
             // Copy file content over
-            Files.copy(Path.of(trackingPathways.get(i)), Path.of(copyPathways.get(i)), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(trackingPath, copyPath, StandardCopyOption.REPLACE_EXISTING);
 
             // Save changes to git
-            commitChanges(gitPathways.get(i), copyPathways.get(i));
+            commitChanges(gitPathways.get(i), copyPath.getFileName().toString());
         }
     }
 
     /**
-     * Connects to repository from provided <code>gitPathway</code> and commits changes made to the <code>copyPathway</code> file.
+     * Connects to repository from provided <code>gitPathway</code> and commits changes made to the <code>fileName</code> file.
      *
      * @param gitPathway the string pathway to the git folder
-     * @param copyPathway the string pathway to the copied text file
+     * @param fileName the name of the file to commit changes of
      * @throws IOException if <code>gitPathway</code> isn't a valid pathway
      * @throws GitAPIException if connection to git folder couldn't be made or writing to it fails
      */
-    public static void commitChanges(String gitPathway, String copyPathway) throws IOException, GitAPIException {
-
-        // Establish connection to local git
-        try(Git git = Git.open(new File(gitPathway))) {
-
+    public static void commitChanges(String gitPathway, String fileName) throws IOException, GitAPIException {
+        try (Git git = Git.open(new File(gitPathway))) {
             // Add file to staging area
-            AddCommand add = git.add();
-            add.addFilepattern(copyPathway).call();
+            git.add().addFilepattern(fileName).call();
 
             // Commit added file
-            CommitCommand commit = git.commit();
-            commit.setMessage("Auto Save").call();
+            git.commit().setMessage("Auto Save").call();
         }
     }
 
     /**
      * Finds the absolute path to the TrackedFiles directory.
+     *
      * @return absolute path to TrackedFile directory
      */
     public static Path getTrackedFilesPathway(){
@@ -232,6 +260,7 @@ public abstract class VersionManager {
      * @param gitPathway the pathway to the repository to extract commit dates from
      * @throws IOException if git file doesn't exist
      * @throws GitAPIException if git has trouble accessing the commit history
+     * @return list of all commit dates found from the specified repository
      */
     public static ArrayList<String> getCommitDates(String gitPathway) throws IOException, GitAPIException {
 
@@ -255,6 +284,7 @@ public abstract class VersionManager {
                         LocalDateTime.ofInstant(Instant.ofEpochSecond(commit.getCommitTime()),
                                 TimeZone.getDefault().toZoneId());
 
+
                 // Format date and add to list
                 DateTimeFormatter format = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss");
                 dates.add(date.format(format));
@@ -262,6 +292,48 @@ public abstract class VersionManager {
 
             return dates;
         }
+    }
+
+    /**
+     * Finds all the commit dates in a git repository and returns it as a String array list.
+     *
+     * @param gitPathway the pathway to the repository to extract commit dates from.
+     * @param index the index of the commit to get the commit id from.
+     * @throws IOException if git file doesn't exist.
+     * @throws GitAPIException if git has trouble accessing the commit history.
+     * @return the commit id of the commit found
+     */
+    public static String getCommitId(String gitPathway, int index) throws IOException, GitAPIException {
+
+        try (Git git = Git.open(new File(gitPathway))) {
+            // Checkout to master branch
+            git.checkout().setName("master").call();
+
+            // Get commits
+            Iterable<RevCommit> commits = git.log().setMaxCount(100).call();
+
+            int i = 0;
+            for (RevCommit commit : commits) {
+                RevTree tree = commit.getTree();
+
+                try (TreeWalk treeWalk = new TreeWalk(git.getRepository())) {
+                    treeWalk.addTree(tree);
+                    treeWalk.setRecursive(true);
+                }
+
+                // Return commit hash if index matches
+                if (i == index) {
+                    String commitHash = commit.getName();
+                    return commitHash;
+                }
+                i++;
+            }
+        } catch (IOException | GitAPIException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+
     }
 
     /**
@@ -288,8 +360,9 @@ public abstract class VersionManager {
      * Recursively deletes a directory and all it child files.
      *
      * @param directory the directory to be deleted
+     * @return whether the directory was deleted or not
      */
-    public static void deleteDirectory(File directory) {
+    public static boolean deleteDirectory(File directory) {
 
         // If file is a directory then recursively delete
         if (directory.isDirectory()) {
@@ -301,82 +374,139 @@ public abstract class VersionManager {
             }
         }
         // Delete the directory itself
-        directory.delete();
+        return directory.delete();
     }
 
-    /** */
-    public static void updateTrackedFile(String newPathway) throws IOException {
+    /**
+     * Updates the file being tracked and updates its record and directory.
+     *
+     * @param fileName the name of the file to update the pathway of.
+     * @param newTrackingPathway the new pathway to change <code>fileName</code> to.
+     * @throws IOException if the new tracking file couldn't be found.
+     * @throws SQLException if DatabaseManager fails to get or update an entry.
+     * @return boolean value indicating whether the pathway was successfully changed or not.
+     */
+    public static boolean updatePathway(String fileName, String newTrackingPathway) throws IOException, SQLException {
 
-        // Columns to be stored in the database
-        String fileName = extractFileName(trackingPathway);
-        String directoryPathway;
-        String copyPathway;
-        String repoPathway = null;
+        File newTextFile = new File(newTrackingPathway);
 
-        // Files
-        File directory;
-        File trackingFile = new File(trackingPathway);
+        // Check if there's a file at the new pathway
+        if(!newTextFile.exists())
+            throw new FileNotFoundException();
 
+        // Check if the file is a text file
+        if(!newTextFile.getName().contains(".txt"))
+            return false;
 
-        // Check if the newPathway is valid
-        if(!new File(newPathway).exists())
-            throw new FileNotFoundException("No file found for new pathway");
-
-        // Checks if file is a text file
-        if(!trackingFile.getName().contains(".txt"))
-            throw new IOException("The file trying to be tracked isn't a text file");
-
+        // Throw new IOException if the new pathway is the same as the old one
+        if(newTrackingPathway.equals(DatabaseManager.getEntry(fileName, DatabaseManager.Columns.TRACKING_PATHWAY)))
+            return false;
 
         // Set directory pathway
-        directoryPathway = getTrackedFilesPathway() + "\\" + trackingFile.getName().replace(".txt","");
+        String newDirectoryPathway = getTrackedFilesPathway() + "\\" + new File(newTrackingPathway).getName().replace(".txt","");
 
         // Set file to directory pathway
-        directory = new File(directoryPathway);
+        File directory = new File(newDirectoryPathway);
 
-        String temp = fileName;
+        // Extract new file name
+        String newFileName = parseFileName(newTrackingPathway);
+        String temp = newFileName;
 
-        // Loop through directory names until a available one is found.
+        // Find available name
         for(int i = 0; directory.exists() && i < 30; i++){
-            directoryPathway = getTrackedFilesPathway() + "\\" + trackingFile.getName().replace(".txt","") + " (" + i + ")";
-            directory = new File(directoryPathway);
-            fileName = temp + " (" + i + ")";
+            newDirectoryPathway = getTrackedFilesPathway() + "\\" + new File(newTrackingPathway).getName().replace(".txt","") + " (" + i + ")";
+            directory = new File(newDirectoryPathway);
+            newFileName = temp + " (" + i + ")";
         }
 
-        // Set pathways
-        copyPathway = directoryPathway + "\\" + trackingFile.getName();
-        repoPathway = directoryPathway + "\\.git";
+        // Make new directory
+        directory.mkdir();
 
-        // Create directory file
-        if (!directory.mkdir())
-            throw new IOException("Failed to create directory");
+        // Get old pathways from database
+        String oldDirectoryPath = DatabaseManager.getEntry(fileName, DatabaseManager.Columns.DIRECTORY_PATHWAY);
+        String oldCopyPathway = DatabaseManager.getEntry(fileName, DatabaseManager.Columns.COPY_PATHWAY);
+        String oldGitPathway = DatabaseManager.getEntry(fileName, DatabaseManager.Columns.REPO_PATHWAY);
 
+        // Move text and git files to new directory
+        new File(oldCopyPathway).renameTo(new File(newDirectoryPathway + "\\" + newTextFile.getName()));
+        new File(oldGitPathway).renameTo(new File(newDirectoryPathway + "\\" + new File(oldGitPathway).getName()));
 
-        // Create copy of text file
-        File copiedFile = new File(String.valueOf(Files.copy(trackingFile.toPath(), Path.of(copyPathway))));
+        // Delete old directory
+        new File(oldDirectoryPath).delete();
 
-        // Save file info to database
-        try {
-            DatabaseManager.insert(fileName, directoryPathway, copyPathway, trackingPathway, repoPathway);
-        } catch (SQLException e) {
-            directory.delete();
-            copiedFile.delete();
-            throw e;
+        // Update file information record
+        DatabaseManager.updateEntry(fileName, DatabaseManager.Columns.TRACKING_PATHWAY, newTrackingPathway);
+        DatabaseManager.updateEntry(fileName, DatabaseManager.Columns.FILE_NAME, newFileName);
+        DatabaseManager.updateEntry(newFileName, DatabaseManager.Columns.COPY_PATHWAY, newDirectoryPathway + "\\" + newTextFile.getName());
+        DatabaseManager.updateEntry(newFileName, DatabaseManager.Columns.REPO_PATHWAY, newDirectoryPathway + "\\" + new File(oldGitPathway).getName());
+        DatabaseManager.updateEntry(newFileName, DatabaseManager.Columns.DIRECTORY_PATHWAY, newDirectoryPathway);
+
+        return true;
+    }
+
+    /**
+     * Reverts the tracked files text back to previous commit.
+     *
+     * @param fileName the name of the file to revert
+     * @param gitPathway the pathway to the git to get commits from
+     * @param commitID the id of the commit to revert to
+     * @throws IOException if I/O error occurs
+     * @throws GitAPIException if JGit fails to check out to master branch
+     */
+    public static void revert(String fileName, String gitPathway, String commitID) throws IOException, GitAPIException {
+
+        try (Git git = Git.open(new File(gitPathway))) {
+            Repository repository = git.getRepository();
+
+            // Ensure you are on the branch where you want to restore the file
+            git.checkout().setName("master").call(); // Replace "master" with your branch name if necessary
+
+            // Resolve the commit ID
+            ObjectId commitObjectId = repository.resolve(commitID);
+            if (commitObjectId == null) {
+                throw new IllegalArgumentException("Commit ID not found");
+            }
+
+            // Parse the commit and get the tree
+            RevCommit commit = repository.parseCommit(commitObjectId);
+            RevTree tree = commit.getTree();
+
+            // Read file content from the specific commit
+            try (TreeWalk treeWalk = new TreeWalk(repository)) {
+                treeWalk.addTree(tree);
+                treeWalk.setRecursive(true);
+                treeWalk.setFilter(PathFilter.create(fileName + ".txt")); // Ensure this path is correct
+
+                if (treeWalk.next()) {
+                    ObjectId objectId = treeWalk.getObjectId(0);
+                    byte[] data = repository.open(objectId).getBytes();
+
+                    // Construct the correct file path
+                    Path realOutput = Paths.get(DatabaseManager.getEntry(fileName, DatabaseManager.Columns.TRACKING_PATHWAY));
+
+                    // Write the file to the specified path
+                    Files.write(realOutput, data);
+                }
+
+                repository.close();
+
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
         }
+    }
 
-        //Create Git init and save changes to git
-        try {
-            Git git = Git.init().setDirectory(directory).call();
-            AddCommand add = git.add();
-            add.addFilepattern(copyPathway).call();
-            CommitCommand commit = git.commit();
-            commit.setMessage("initial commit").call();
-        }
-        catch(Exception e){
-            directory.delete();
-            copiedFile.delete();
-            DatabaseManager.deleteRecord(fileName);
-            throw e;
-        }
+    /** Delete all files in TrackedFiles directory */
+    public static void clearTrackedFiles(){
 
+        File directory = new File(String.valueOf(getTrackedFilesPathway()));
+        File[] files = directory.listFiles();
+
+        // Loop through all files in TrackedFiles directory and delete them
+        while(files != null && files.length != 0){
+            deleteDirectory(files[0]);
+
+            files = directory.listFiles();
+        }
     }
 }

@@ -3,6 +3,7 @@ module com.example.textversioncontrol {
     requires javafx.fxml;
     requires org.eclipse.jgit;
     requires java.sql;
+    requires org.xerial.sqlitejdbc;
 
 
     opens com.example.textversioncontrol to javafx.fxml;

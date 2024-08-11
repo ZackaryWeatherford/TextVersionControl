@@ -13,7 +13,7 @@ import java.util.ArrayList;
 public class DatabaseManager {
 
     /** Commands for what pathway to extract from the database. */
-    public enum Columns {FILE_NAME, DIRECTORY_PATHWAY, COPY_PATHWAY, TRACKING_PATHWAY, GIT_PATHWAY}
+    public enum Columns {FILE_NAME, DIRECTORY_PATHWAY, COPY_PATHWAY, TRACKING_PATHWAY, REPO_PATHWAY}
 
     /** Connection to the SQL database */
     public static Connection connection = null;
@@ -22,7 +22,7 @@ public class DatabaseManager {
      *  Establishes a connection with the SQL database through the <code>connection</code> object.
      *  Must be called before using any other method in class.
      *
-     * @throws ClassNotFoundException if the name of the class can't be found
+     * @throws ClassNotFoundException if JDBC driver can't be found
      * @throws SQLException if connection to the database couldn't be made
      */
     public static void createConnection() throws ClassNotFoundException, SQLException {
@@ -144,13 +144,13 @@ public class DatabaseManager {
     }
 
     /**
-     * Returns a pathway from the table based on the pathway argument passed.
+     * Returns a entry based on <code>fileName</code> and <code>column</code> arguments.
      *
      * @param fileName the file to extract pathway from.
      * @param column the pathway to be extracted from SQL table.
      * @throws SQLException if the prepared statement or result set have trouble accessing the database.
      * @throws FileNotFoundException if no entry with fileName was found.
-     * @return the requested pathway in the form of a String.
+     * @return the value of the entry
      */
     public static String getEntry(String fileName, Columns column) throws SQLException, FileNotFoundException {
 
@@ -160,7 +160,7 @@ public class DatabaseManager {
             case DIRECTORY_PATHWAY -> "directory_pathway";
             case COPY_PATHWAY -> "copy_pathway";
             case TRACKING_PATHWAY -> "tracking_pathway";
-            case GIT_PATHWAY -> "repo_pathway";
+            case REPO_PATHWAY -> "repo_pathway";
         };
 
         // Query statement
@@ -190,7 +190,7 @@ public class DatabaseManager {
      *
      * @param column the pathway to be extracted from SQL table.
      * @throws SQLException if the prepared statement or result set have trouble accessing the database.
-     * @return the requested pathway in the form of a String.
+     * @return list of all found entries for that column
      */
     public static ArrayList<String> getEntries(Columns column) throws SQLException {
 
@@ -203,7 +203,7 @@ public class DatabaseManager {
             case DIRECTORY_PATHWAY -> "directory_pathway";
             case COPY_PATHWAY -> "copy_pathway";
             case TRACKING_PATHWAY -> "tracking_pathway";
-            case GIT_PATHWAY -> "repo_pathway";
+            case REPO_PATHWAY -> "repo_pathway";
         };
 
         // Query statement
@@ -221,7 +221,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Updates a cell within a record.
+     * Updates an entry within a record with a new value using the specified parameters.
      *
      * @param fileName the record to change the cell of
      * @param column the column within the record to change
@@ -258,7 +258,7 @@ public class DatabaseManager {
         ArrayList<String> fileNames = DatabaseManager.getEntries(DatabaseManager.Columns.FILE_NAME);
         ArrayList<String> directoryPathways = DatabaseManager.getEntries(DatabaseManager.Columns.DIRECTORY_PATHWAY);
         ArrayList<String> copyPathways = DatabaseManager.getEntries(DatabaseManager.Columns.COPY_PATHWAY);
-        ArrayList<String> repoPathways = DatabaseManager.getEntries(DatabaseManager.Columns.GIT_PATHWAY);
+        ArrayList<String> repoPathways = DatabaseManager.getEntries(DatabaseManager.Columns.REPO_PATHWAY);
 
         // Resolve invalid directory pathways
         for(int i = 0; i < directoryPathways.size(); i++) {
@@ -303,36 +303,3 @@ public class DatabaseManager {
 
     }
 }
-
-
-
-/**
- * Retrieves all entries in the file_name columns of the table.
- *
- * @throws SQLException if SQL statement or result set have trouble accessing the database.
- * @return a list of all file names in table.
- */
-    /*
-    public static ArrayList<String> getFileNames() throws SQLException {
-
-        // List of file names
-        ArrayList<String> fileNames = new ArrayList<>();
-
-        // Query statement
-        String query = "SELECT file_name FROM pathways";
-
-        // Create statement
-        Statement statement = connection.createStatement();
-        ResultSet resultSet = statement.executeQuery(query);
-
-        // Loop through table and add file_name to fileNames list
-        while(resultSet.next())
-            fileNames.add(resultSet.getString("file_name"));
-
-        return fileNames;
-    }
-
-     */
-
-
-

@@ -7,10 +7,10 @@
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="872.0" prefWidth="925.0" style="-fx-background-color: #f0f0f0;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.textversioncontrol.controllers.MainViewController">
+<AnchorPane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="872.0" prefWidth="927.0" style="-fx-background-color: #f0f0f0;" xmlns="http://javafx.com/javafx/21" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.example.textversioncontrol.controllers.MainViewController">
    <children>
       <TextField fx:id="pathwayLineEdit" layoutX="133.0" layoutY="104.0" prefHeight="41.0" prefWidth="449.0" style="-fx-background-color: #4da3ff; -fx-border-radius: 30%; -fx-text-fill: white; -fx-font-weight: 700; -fx-background-size: 25px;" text="C:/" />
-      <Button fx:id="trackingButton" layoutX="621.0" layoutY="106.0" mnemonicParsing="false" onAction="#trackFile" prefHeight="38.0" prefWidth="137.0" style="-fx-background-color: #54ffa4; -fx-text-fill: white; -fx-font-weight: 700; -fx-font-size: 17px;" text="Start Tracking" />
+      <Button fx:id="trackingButton" layoutX="621.0" layoutY="106.0" mnemonicParsing="false" onAction="#trackFile" prefHeight="38.0" prefWidth="137.0" style="-fx-background-color: #69db60; -fx-text-fill: white; -fx-font-weight: 700; -fx-font-size: 17px;" text="Start Tracking" />
       <Label fx:id="titleLabel" layoutX="133.0" layoutY="50.0" style="-fx-font-size: 30px; -fx-background-color: #f0f0f0; -fx-font-weight: 700;" text="New Text File Pathway" />
       <TableView fx:id="trackedFilesTable" layoutX="55.0" layoutY="318.0" prefHeight="469.0" prefWidth="815.0" />
       <Label layoutX="55.0" layoutY="272.0" prefHeight="45.0" prefWidth="815.0" style="-fx-font-size: 30px; -fx-font-weight: 700; -fx-text-fill: white; -fx-background-color: #4da3ff; -fx-background-radius: 2px;" text="Tracking Files" AnchorPane.leftAnchor="55.0">
@@ -18,5 +18,8 @@
             <Insets left="10.0" />
          </padding>
       </Label>
+      <Button layoutX="55.0" layoutY="211.0" mnemonicParsing="false" onAction="#checkForChanges" prefHeight="38.0" prefWidth="179.0" style="-fx-background-color: #ae57ff; -fx-text-fill: white; -fx-font-weight: 700; -fx-font-size: 17px;" text="Check for Changes" />
+      <Button fx:id="trackingButton11" layoutX="261.0" layoutY="211.0" mnemonicParsing="false" onAction="#resolvePathways" prefHeight="38.0" prefWidth="179.0" style="-fx-background-color: #fa7d4b; -fx-text-fill: white; -fx-font-weight: 700; -fx-font-size: 17px;" text="Resolve Pathways" />
+      <Button fx:id="trackingButton111" layoutX="784.0" layoutY="211.0" mnemonicParsing="false" onAction="#clear" prefHeight="38.0" prefWidth="85.0" style="-fx-background-color: #ff3838; -fx-text-fill: white; -fx-font-weight: 700; -fx-font-size: 17px;" text="Clear" />
    </children>
 </AnchorPane>
