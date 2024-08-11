@@ -5,10 +5,12 @@ import com.example.textversioncontrol.managers.VersionManager;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Scene;
+import javafx.scene.image.Image;
 import javafx.stage.Stage;
 import org.eclipse.jgit.api.errors.GitAPIException;
 
 import java.io.IOException;
+import java.nio.file.Paths;
 import java.sql.*;
 
 /**
@@ -30,6 +32,7 @@ public class TextFileTracker extends Application {
         stage.setTitle("Text Version History");
         stage.setScene(scene);
         stage.show();
+        stage.getIcons().add(new Image(String.valueOf(Paths.get("").toAbsolutePath().resolve("src/main/resources/images/control_icon.png"))));
     }
 
     /**
