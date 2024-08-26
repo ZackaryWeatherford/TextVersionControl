@@ -7,26 +7,16 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.nio.file.*;
 import java.io.*;
-import java.util.Iterator;
-import java.util.List;
 import java.util.TimeZone;
 import java.io.File;
 
 import org.eclipse.jgit.api.*;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.api.errors.NoHeadException;
-import org.eclipse.jgit.diff.DiffEntry;
-import org.eclipse.jgit.diff.DiffFormatter;
-import org.eclipse.jgit.errors.IncorrectObjectTypeException;
 import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.ObjectReader;
-import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 
@@ -337,7 +327,7 @@ public abstract class VersionManager {
     }
 
     /**
-     * Stops tracking a file by deleting its directory and file in the project.
+     * Stops tracking a file by deleting its directory and file in the project folder and database.
      *
      * @param fileName the name of the file to stop tracking
      * @throws SQLException if the connection to the database hasn't been made or an error occurs while deleting record.

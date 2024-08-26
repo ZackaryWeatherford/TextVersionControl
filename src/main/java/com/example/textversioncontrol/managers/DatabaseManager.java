@@ -144,7 +144,7 @@ public class DatabaseManager {
     }
 
     /**
-     * Returns a entry based on <code>fileName</code> and <code>column</code> arguments.
+     * Returns an entry based on <code>fileName</code> and <code>column</code> arguments.
      *
      * @param fileName the file to extract pathway from.
      * @param column the pathway to be extracted from SQL table.
